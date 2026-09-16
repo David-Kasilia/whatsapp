@@ -414,7 +414,11 @@ class IntegrationTestGetSendableTemplates(WithoutHostAccessGuards, IntegrationTe
 				}
 			],
 		)
-		self.assertIn(bound, [t.name for t in get_sendable_templates("ToDo")])
+		row = next(t for t in get_sendable_templates("ToDo") if t.name == bound)
+		self.assertEqual(
+			row["template_variables"],
+			[{"variable_name": "description", "variable_field": "description"}],
+		)
 
 	def test_buttons_child_table_is_returned(self):
 		"""`frappe.get_all` on the parent cannot return a child table; it needs its own query."""
