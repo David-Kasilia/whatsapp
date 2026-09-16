@@ -77,8 +77,9 @@ Notifications & Automation below.
 
 #### 5. Sync templates
 
-Templates are pulled from Meta daily by the scheduler. To pull them now, open the **WhatsApp
-Template** list and click **Sync from Meta**; with several active accounts it asks which one.
+With one active account, the scheduler pulls templates from Meta daily. With several, the daily
+job only logs that it found more than one, so sync each account by hand: open the **WhatsApp
+Template** list, click **Sync from Meta** and pick the account.
 Each template arrives with its Meta status, and only templates with status **Approved** can be
 sent. The list view's sync calls
 `whatsapp.whatsapp.doctype.whatsapp_template.whatsapp_template.sync_all`, and
