@@ -91,8 +91,9 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
   );
   const loading = computed<boolean>(() => Boolean(list.loading));
 
-  // Re-evaluated when the conversation changes, which every incoming message does; a tab left
-  // open across the boundary learns of it on its next reload.
+  // `now` is only bumped at the expiry instant, so a tab left open across the boundary
+  // locks its composer the moment the window closes rather than on its next reload.
+  const now = ref(Date.now());
   const serviceWindow = computed<CustomerServiceWindow | null>(() => {
     if (list.data == null) return null;
     const lastIncoming = [...messages.value]
@@ -100,8 +101,20 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
       .find((m) => m.direction === "Incoming");
     if (!lastIncoming?.creation) return { open: false, expiresAt: null };
     const expiresAt = dayjsLocal(lastIncoming.creation).add(CUSTOMER_SERVICE_WINDOW_HOURS, "hour");
-    return { open: expiresAt.isAfter(dayjsLocal()), expiresAt: expiresAt.toDate() };
+    return { open: expiresAt.valueOf() > now.value, expiresAt: expiresAt.toDate() };
   });
+
+  let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+  watch(
+    () => serviceWindow.value?.expiresAt?.valueOf(),
+    (expiresAt) => {
+      clearTimeout(expiryTimer);
+      const wait = (expiresAt ?? 0) - Date.now();
+      if (wait > 0) expiryTimer = setTimeout(() => (now.value = Date.now()), wait);
+    },
+    { immediate: true }
+  );
+  onScopeDispose(() => clearTimeout(expiryTimer));
   // A resource clears its error when its next call starts.
   const error = computed<unknown>(
     () =>
