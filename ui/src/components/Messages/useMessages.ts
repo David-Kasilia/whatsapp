@@ -99,9 +99,12 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
     const lastIncoming = [...messages.value]
       .reverse()
       .find((m) => m.direction === "Incoming");
-    if (!lastIncoming?.creation) return { open: false, expiresAt: null };
+    if (!lastIncoming?.creation) return { status: "unopened", expiresAt: null };
     const expiresAt = dayjsLocal(lastIncoming.creation).add(CUSTOMER_SERVICE_WINDOW_HOURS, "hour");
-    return { open: expiresAt.valueOf() > now.value, expiresAt: expiresAt.toDate() };
+    return {
+      status: expiresAt.valueOf() > now.value ? "open" : "closed",
+      expiresAt: expiresAt.toDate(),
+    };
   });
 
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;

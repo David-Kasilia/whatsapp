@@ -250,8 +250,9 @@ export type MessageReference = [doctype: string, docname: string];
  * conversation, so it is as wide as the references are.
  */
 export interface CustomerServiceWindow {
-  open: boolean;
-  /** when the window lapses; `null` when the contact has never written */
+  /** only the contact's message opens a window, so it is `unopened` until they have written */
+  status: "open" | "closed" | "unopened";
+  /** when the window lapses, or lapsed; `null` while unopened */
   expiresAt: Date | null;
 }
 
@@ -369,9 +370,10 @@ export interface TemplatesController {
  * The reply preview sits inside the composer's border, above the field. Draws no page padding
  * of its own; a host supplies it, and a `class` lands on the root above the composer.
  * Accepts a dropped or pasted file as well as a picked one. Enter sends; shift+enter breaks the line.
- * While the controller's `serviceWindow` is closed the field and the send are locked, and once
- * a window has lapsed {@link MessageInputProps.windowClosedLabel} says so; `leading-actions`
- * stays live so a host's template button still works.
+ * Unless the controller's `serviceWindow` is open the field and the send are locked, and a
+ * banner says why — {@link MessageInputProps.windowClosedLabel} or
+ * {@link MessageInputProps.windowUnopenedLabel}; `leading-actions` stays live so a host's
+ * template button still works.
  *
  * Emits: `send` ({@link SendMessagePayload}) **after** the send lands, as a notification.
  * Slots: `leading-actions` — rendered at the start of the action row, inside the composer.
@@ -398,10 +400,14 @@ export interface MessageInputProps {
   dismissReplyLabel?: string;
   /**
    * default "The 24-hour customer service window has closed. Send a template to reopen it."
-   * Shown in a banner above the field once a window has lapsed. A contact who has never
-   * written had no window to close: the field locks, but nothing is announced.
+   * Shown in a banner above the field while the window is closed.
    */
   windowClosedLabel?: string;
+  /**
+   * default "Send a template to start the conversation." Shown in the same banner while the
+   * contact has not written yet, so a locked field on a new lead explains itself.
+   */
+  windowUnopenedLabel?: string;
   /**
    * default "Send". The send button is icon-only, so this is its tooltip and its accessible
    * name. Do not append the keyboard hint — the tooltip renders it.

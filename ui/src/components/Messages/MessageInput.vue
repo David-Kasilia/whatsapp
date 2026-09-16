@@ -27,6 +27,7 @@ const props = withDefaults(defineProps<MessagesController & MessageInputProps>()
 	dismissReplyLabel: "Dismiss reply",
 	windowClosedLabel:
 		"The 24-hour customer service window has closed. Send a template to reopen it.",
+	windowUnopenedLabel: "Send a template to start the conversation.",
 });
 
 const emit = defineEmits<{
@@ -52,11 +53,18 @@ const replyToName = computed(() =>
 );
 
 // Unknown (`null`) is treated as open: an unloaded conversation must not lock the field.
-const windowClosed = computed(() => props.serviceWindow?.open === false);
-// A contact who has never written had no window to close, so the banner would mislead;
-// the field still locks, and the host's template button is the way to start.
-const windowLapsed = computed(() => windowClosed.value && props.serviceWindow?.expiresAt != null);
-const locked = computed(() => props.disabled || windowClosed.value);
+const windowStatus = computed(() => props.serviceWindow?.status ?? "open");
+const windowNotice = computed(() => {
+	switch (windowStatus.value) {
+		case "closed":
+			return props.windowClosedLabel;
+		case "unopened":
+			return props.windowUnopenedLabel;
+		default:
+			return null;
+	}
+});
+const locked = computed(() => props.disabled || windowStatus.value !== "open");
 const sendable = computed(() => props.canSend && !locked.value);
 
 function focus() {
@@ -177,12 +185,12 @@ defineExpose({ focus });
 	<!-- The dialog is a sibling of the composer, so a host's `class` needs a root above both. -->
 	<div class="flex flex-col gap-2">
 		<div
-			v-if="windowLapsed"
+			v-if="windowNotice"
 			role="status"
 			class="flex items-center gap-2 rounded-lg bg-surface-gray-2 px-3 py-2 text-sm text-ink-gray-7"
 		>
 			<span class="lucide-info size-4 shrink-0 text-ink-amber-6" aria-hidden="true" />
-			{{ windowClosedLabel }}
+			{{ windowNotice }}
 		</div>
 
 		<!--

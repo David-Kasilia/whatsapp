@@ -322,15 +322,15 @@ so the rows arrive grouped, and a conversation is one chronological run through 
 `sending` is true while a send is in flight, and `canSend` is false for its duration — which is
 what stops a second enter during the round trip from posting the same draft twice.
 
-`serviceWindow` is Meta's 24-hour customer service window, `{ open, expiresAt }`, worked out
-from the latest incoming message in the loaded conversation, `null` until it has loaded, and
-re-evaluated at the instant it lapses. A free-form message only reaches a contact within 24
-hours of their last message, so `MessageInput` locks its field and its send while `open` is
-false; the `leading-actions` slot stays live, which is where a host puts its template button.
-A conversation with no incoming message has a closed window with `expiresAt: null`. The
-`windowClosedLabel` banner above the box appears only once a window has lapsed: a contact who
-has never written had none to close, so that composer locks quietly. The window is only as
-wide as `references`: a contact who wrote on a document outside them looks silent here.
+`serviceWindow` is Meta's 24-hour customer service window, `{ status, expiresAt }`, worked
+out from the latest incoming message in the loaded conversation, `null` until it has loaded,
+and re-evaluated at the instant it lapses. Only the contact's message opens a window, so
+`status` is `unopened` until they have written, then `open` for 24 hours from their latest
+message, then `closed`. `MessageInput` locks its field and its send unless the window is
+open, and a banner above the box says why — `windowClosedLabel` or `windowUnopenedLabel`; the
+`leading-actions` slot stays live, which is where a host puts its template button. The window
+is only as wide as `references`: a contact who wrote on a document outside them looks silent
+here.
 
 `error` holds the last failure of the fetch, a send or a reaction, and is `null` while
 healthy. The verbs never throw — they return `null` — because this package has no notification
