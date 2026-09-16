@@ -369,8 +369,9 @@ export interface TemplatesController {
  * The reply preview sits inside the composer's border, above the field. Draws no page padding
  * of its own; a host supplies it, and a `class` lands on the root above the composer.
  * Accepts a dropped or pasted file as well as a picked one. Enter sends; shift+enter breaks the line.
- * While the controller's `serviceWindow` is closed the field and the send are locked behind {@link MessageInputProps.windowClosedLabel};
- * `leading-actions` stays live so a host's template button still works.
+ * While the controller's `serviceWindow` is closed the field and the send are locked, and once
+ * a window has lapsed {@link MessageInputProps.windowClosedLabel} says so; `leading-actions`
+ * stays live so a host's template button still works.
  *
  * Emits: `send` ({@link SendMessagePayload}) **after** the send lands, as a notification.
  * Slots: `leading-actions` — rendered at the start of the action row, inside the composer.
@@ -397,7 +398,8 @@ export interface MessageInputProps {
   dismissReplyLabel?: string;
   /**
    * default "The 24-hour customer service window has closed. Send a template to reopen it."
-   * Shown in a banner above the field while the window is closed.
+   * Shown in a banner above the field once a window has lapsed. A contact who has never
+   * written had no window to close: the field locks, but nothing is announced.
    */
   windowClosedLabel?: string;
   /**

@@ -53,6 +53,9 @@ const replyToName = computed(() =>
 
 // Unknown (`null`) is treated as open: an unloaded conversation must not lock the field.
 const windowClosed = computed(() => props.serviceWindow?.open === false);
+// A contact who has never written had no window to close, so the banner would mislead;
+// the field still locks, and the host's template button is the way to start.
+const windowLapsed = computed(() => windowClosed.value && props.serviceWindow?.expiresAt != null);
 const locked = computed(() => props.disabled || windowClosed.value);
 const sendable = computed(() => props.canSend && !locked.value);
 
@@ -174,7 +177,7 @@ defineExpose({ focus });
 	<!-- The dialog is a sibling of the composer, so a host's `class` needs a root above both. -->
 	<div class="flex flex-col gap-2">
 		<div
-			v-if="windowClosed"
+			v-if="windowLapsed"
 			role="status"
 			class="flex items-center gap-2 rounded-lg bg-surface-gray-2 px-3 py-2 text-sm text-ink-gray-7"
 		>
