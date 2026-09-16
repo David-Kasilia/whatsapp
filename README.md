@@ -12,6 +12,110 @@ bench get-app $URL_OF_THIS_REPO --branch main
 bench install-app whatsapp
 ```
 
+### Getting Started
+
+Six steps take a fresh site from nothing to a first message. Everything the app does along the
+way is recorded in **WhatsApp Log**, so open it beside Desk while you go.
+
+#### 1. Set up the Meta side
+
+1. At [developers.facebook.com](https://developers.facebook.com/apps) create an app of type
+   **Business** and add the **WhatsApp** product to it.
+2. Open **WhatsApp > API Setup** and note three values: the **App ID**, the **WhatsApp Business
+   Account ID** and the **Phone Number ID**.
+3. Generate a permanent access token. The token shown on API Setup expires in 24 hours, so
+   instead go to **Meta Business Settings > Users > System Users**, create a system user, assign
+   it the WhatsApp app and the business account, and generate a token with the
+   `whatsapp_business_messaging` and `whatsapp_business_management` permissions.
+
+Until the phone number is live, Meta only delivers to numbers you add under **API Setup >
+To**. Sends to anyone else fail with "Recipient phone number not in allowed list".
+
+#### 2. Fill in WhatsApp Settings
+
+Open **WhatsApp Settings** in Desk.
+
+| Field | Value |
+|---|---|
+| Webhook Verify Token | Any string you choose. You will repeat it on Meta in the next step |
+| Webhook Secret | The **App Secret** from the app's **App Settings > Basic** page. Every webhook delivery is checked against it with HMAC-SHA256; leave it blank and deliveries are accepted unverified |
+| API Url | Defaults to `https://graph.facebook.com` |
+| API Version | Defaults to `v23.0` |
+
+Leave **Default Account** empty for now; the first account you create fills it in.
+
+#### 3. Register the webhook on Meta
+
+In the app's **WhatsApp > Configuration** page:
+
+1. Set the **Callback URL** to `https://<your-site>/api/method/whatsapp.whatsapp.webhook.handler`.
+2. Set the **Verify token** to the value from step 2 and click **Verify and save**. The app
+   answers Meta's challenge and writes "Webhook verified successfully" to WhatsApp Log.
+3. Under **Webhook fields**, subscribe to `messages` and `message_template_status_update`.
+   Other fields are delivered but ignored.
+
+The site must be reachable over HTTPS from the internet. For a local bench, put a tunnel such as
+ngrok in front of it and use the tunnel's URL.
+
+#### 4. Create a WhatsApp Account
+
+Open **WhatsApp Account > New** and fill in:
+
+| Field | Value |
+|---|---|
+| Account name | Any label |
+| Status | Active |
+| App ID | From step 1 |
+| Business ID | The WhatsApp Business Account ID from step 1 |
+| Phone ID | The Phone Number ID from step 1 |
+| Access token | The system user token from step 1. Hidden after save |
+
+The first account saved becomes the **Default Account** in WhatsApp Settings; later accounts
+leave that choice alone. **Auto Send Read Receipts** marks incoming messages as read on
+WhatsApp as they arrive. The **Append Actions** table is optional automation, covered under
+Notifications & Automation below.
+
+#### 5. Sync templates
+
+Templates are pulled from Meta daily by the scheduler. To pull them now, open the **WhatsApp
+Template** list and click **Sync from Meta**; with several active accounts it asks which one.
+Each template arrives with its Meta status, and only templates with status **Approved** can be
+sent. The list view's sync calls
+`whatsapp.whatsapp.doctype.whatsapp_template.whatsapp_template.sync_all`, and
+`sync_from_account(account_name)` syncs a single account.
+
+#### 6. Send a first message
+
+WhatsApp only delivers free-form text inside its **customer service window**: the 24 hours after
+the contact last messaged you. Outside that window, which includes a contact you have never
+heard from, only an approved template gets through. So the first message to a new contact is
+a template.
+
+- **From Desk:** open **WhatsApp Message > New**, pick the recipient in **To** (a WhatsApp
+  Profile, created automatically for every sender that has messaged you, or created by hand
+  with the phone number), tick **Is Template** and choose a template, then **Submit**. The
+  send happens on submit and the record's **Status** moves from Pending to Sent, then to
+  Delivered and Read as Meta's status webhooks arrive.
+- **From code:** call `send_template` or `send_message` from the Client API section below.
+  Both accept a raw phone number for `to` and create the profile if needed.
+
+Reply from the phone and the message lands as an incoming **WhatsApp Message** within a few
+seconds, the window opens, and plain text sends work for the next 24 hours.
+
+#### Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| Meta reports the callback URL could not be verified | Response was 403 "token mismatch" or "invalid request": the verify token on Meta differs from **Webhook Verify Token** in WhatsApp Settings, or the URL is wrong. Check the log entry of type Webhook |
+| Log shows "HMAC signature verification failed" on every delivery | **Webhook Secret** does not match the app's App Secret. Copy it again from App Settings > Basic |
+| Sends fail with "Recipient phone number not in allowed list" | The number is live only for test recipients. Add the recipient on **API Setup > To**, or complete Meta's business verification to go live |
+| A text message fails but templates work | The customer service window is closed. Send a template and wait for a reply |
+| Nothing arrives when the phone sends a message | The `messages` webhook field is not subscribed, or the site is not reachable from Meta. WhatsApp Log gets a "Webhook payload received" entry for every delivery that reaches the site |
+
+Every log entry carries a **Level** (Info, Warning, Error, Debug) and an **Event Type** (Webhook,
+Template, Message, API, System), and API entries keep the request and response payloads, so
+filtering the list on Level = Error is usually the fastest way to the cause.
+
 ### Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
