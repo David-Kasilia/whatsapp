@@ -8,8 +8,9 @@ import {
   toValue,
   watch,
 } from "vue";
-import { createResource } from "frappe-ui";
+import { createResource, dayjsLocal } from "frappe-ui";
 import type {
+  CustomerServiceWindow,
   MediaFile,
   MessageReference,
   MessagesController,
@@ -20,6 +21,7 @@ import type {
 } from "./types";
 
 const API = "whatsapp.whatsapp.api.messages";
+const CUSTOMER_SERVICE_WINDOW_HOURS = 24;
 
 /** The socket methods used here. Structural, so this package never imports socket.io. */
 interface RealtimeSocket {
@@ -88,6 +90,34 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
     )
   );
   const loading = computed<boolean>(() => Boolean(list.loading));
+
+  // `now` is only bumped at the expiry instant, so a tab left open across the boundary
+  // locks its composer the moment the window closes rather than on its next reload.
+  const now = ref(Date.now());
+  const serviceWindow = computed<CustomerServiceWindow | null>(() => {
+    if (list.data == null) return null;
+    const lastIncoming = [...messages.value]
+      .reverse()
+      .find((m) => m.direction === "Incoming");
+    if (!lastIncoming?.creation) return { status: "unopened", expiresAt: null };
+    const expiresAt = dayjsLocal(lastIncoming.creation).add(CUSTOMER_SERVICE_WINDOW_HOURS, "hour");
+    return {
+      status: expiresAt.valueOf() > now.value ? "open" : "closed",
+      expiresAt: expiresAt.toDate(),
+    };
+  });
+
+  let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+  watch(
+    () => serviceWindow.value?.expiresAt?.valueOf(),
+    (expiresAt) => {
+      clearTimeout(expiryTimer);
+      const wait = (expiresAt ?? 0) - Date.now();
+      if (wait > 0) expiryTimer = setTimeout(() => (now.value = Date.now()), wait);
+    },
+    { immediate: true }
+  );
+  onScopeDispose(() => clearTimeout(expiryTimer));
   // A resource clears its error when its next call starts.
   const error = computed<unknown>(
     () =>
@@ -276,6 +306,7 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
     loading,
     sending,
     error,
+    serviceWindow,
     reload,
     send,
     react,

@@ -119,16 +119,22 @@ function react({ messageName, emoji }: ReactPayload) {
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- the host owns the scroll container; MessageList is layout-neutral -->
-    <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-10">
-      <MessageList
-        :messages="messages.messages"
-        :loading="messages.loading"
-        :error="messages.error"
-        :sender-name="contactName"
-        @reply="messages.setReplyTo"
-        @react="react"
-      />
+    <!--
+      the host owns the scroll container; MessageList is layout-neutral. The gutter goes on
+      a wrapper inside it, not on the scroller: padding there would hold the list's sticky
+      bottom fade that far above the composer.
+    -->
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <div class="px-3 py-4 sm:px-10">
+        <MessageList
+          :messages="messages.messages"
+          :loading="messages.loading"
+          :error="messages.error"
+          :sender-name="contactName"
+          @reply="messages.setReplyTo"
+          @react="react"
+        />
+      </div>
     </div>
     <!-- the composer draws no page padding of its own either -->
     <MessageInput
@@ -285,7 +291,7 @@ const messages = useMessages({
 });
 
 // controller (a reactive object):
-// messages, loading, sending, error, reload, send, react,
+// messages, loading, sending, error, serviceWindow, reload, send, react,
 // draft, pendingMedia, pendingType, replyTo, canSend,
 // setDraft, setReplyTo, clearReply, attach, clearAttachment, buildPayload, reset
 ```
@@ -315,6 +321,16 @@ so the rows arrive grouped, and a conversation is one chronological run through 
 
 `sending` is true while a send is in flight, and `canSend` is false for its duration — which is
 what stops a second enter during the round trip from posting the same draft twice.
+
+`serviceWindow` is Meta's 24-hour customer service window, `{ status, expiresAt }`, worked
+out from the latest incoming message in the loaded conversation, `null` until it has loaded,
+and re-evaluated at the instant it lapses. Only the contact's message opens a window, so
+`status` is `unopened` until they have written, then `open` for 24 hours from their latest
+message, then `closed`. `MessageInput` locks its field and its send unless the window is
+open, and a banner above the box says why — `windowClosedLabel` or `windowUnopenedLabel`; the
+`leading-actions` slot stays live, which is where a host puts its template button. The window
+is only as wide as `references`: a contact who wrote on a document outside them looks silent
+here.
 
 `error` holds the last failure of the fetch, a send or a reaction, and is `null` while
 healthy. The verbs never throw — they return `null` — because this package has no notification
