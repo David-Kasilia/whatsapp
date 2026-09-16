@@ -346,8 +346,8 @@ export interface TemplatesController {
  *
  * The reply preview sits inside the composer's border, above the field. Draws no page padding
  * of its own; a host supplies it, and a `class` lands on the root above the composer.
- * Accepts a dropped or pasted file as well as a picked one. Sending is ctrl/cmd+enter,
- * leaving a bare enter to break the line.
+ * Accepts a dropped or pasted file as well as a picked one. Enter sends; shift+enter breaks
+ * the line.
  *
  * Emits: `send` ({@link SendMessagePayload}) **after** the send lands, as a notification.
  * Slots: `leading-actions` — rendered at the start of the action row, inside the composer.
@@ -374,8 +374,7 @@ export interface MessageInputProps {
   dismissReplyLabel?: string;
   /**
    * default "Send". The send button is icon-only, so this is its tooltip and its accessible
-   * name. Do not append the keyboard hint — the tooltip renders it, and which modifier to
-   * name is detected from the platform.
+   * name. Do not append the keyboard hint — the tooltip renders it.
    */
   sendLabel?: string;
   disabled?: boolean;
