@@ -82,20 +82,23 @@ function scrollToMessage(name: string) {
 }
 
 const endHidden = ref(false);
+let endObserver: IntersectionObserver | undefined;
+
 // The host's scroll container clips the sentinel whenever a message is scrolled under the
 // composer, and the observer honours that clipping without this list knowing the scroller.
-const endObserver = new IntersectionObserver(
-	([entry]) => (endHidden.value = !entry.isIntersecting)
-);
-
+// Created on first mount, from the ref callback, so setup itself never touches a browser API.
 function observeEnd(element: unknown) {
-	endObserver.disconnect();
-	if (element) endObserver.observe(element as HTMLElement);
+	endObserver?.disconnect();
+	if (!element) return;
+	endObserver ??= new IntersectionObserver(
+		([entry]) => (endHidden.value = !entry.isIntersecting)
+	);
+	endObserver.observe(element as HTMLElement);
 }
 
 onBeforeUnmount(() => {
 	clearTimeout(flashTimer);
-	endObserver.disconnect();
+	endObserver?.disconnect();
 });
 </script>
 
