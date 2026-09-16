@@ -142,8 +142,8 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
     pendingType.value = "document";
   }
 
-  // Guards the double-send: `send()` awaits, and without this a second ctrl+enter during
-  // the round trip posts the same draft twice.
+  // Guards the double-send: `send()` awaits, and without this a second enter during the
+  // round trip posts the same draft twice.
   const sending = ref(false);
 
   const canSend = computed(

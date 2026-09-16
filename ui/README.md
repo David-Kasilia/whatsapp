@@ -251,12 +251,8 @@ async function submit() {
     Replying to {{ messages.replyTo.direction === "Incoming" ? contactName : "You" }}
     <button @click="messages.clearReply()">×</button>
   </div>
-  <!-- MessageInput sends on ctrl/cmd+enter, leaving a bare enter to break the line -->
-  <textarea
-    v-model="messages.draft"
-    @keydown.ctrl.enter.prevent="submit"
-    @keydown.meta.enter.prevent="submit"
-  />
+  <!-- MessageInput sends on enter, leaving shift+enter to break the line -->
+  <textarea v-model="messages.draft" @keydown.enter.exact.prevent="submit" />
   <button :disabled="!messages.canSend" @click="submit">Send</button>
 </template>
 ```
@@ -318,7 +314,7 @@ const messages = useMessages({ references, to: () => props.phone });
 so the rows arrive grouped, and a conversation is one chronological run through all of them.
 
 `sending` is true while a send is in flight, and `canSend` is false for its duration — which is
-what stops a second ctrl/cmd+enter during the round trip from posting the same draft twice.
+what stops a second enter during the round trip from posting the same draft twice.
 
 `serviceWindow` is Meta's 24-hour customer service window, `{ open, expiresAt }`, worked out
 from the latest incoming message in the loaded conversation, and `null` until it has loaded.

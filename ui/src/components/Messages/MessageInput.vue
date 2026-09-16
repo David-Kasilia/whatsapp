@@ -56,14 +56,6 @@ const windowClosed = computed(() => props.serviceWindow?.open === false);
 const locked = computed(() => props.disabled || windowClosed.value);
 const sendable = computed(() => props.canSend && !locked.value);
 
-// Only the platform knows which modifier to name, so it is detected rather than passed in.
-const modifierKey = computed(() =>
-	typeof navigator !== "undefined" &&
-	/Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
-		? "⌘"
-		: "Ctrl"
-);
-
 function focus() {
 	nextTick(() => textareaRef.value?.el?.focus());
 }
@@ -79,7 +71,11 @@ async function submit(overrides?: Pick<SendMessagePayload, "message">) {
 	if (name && payload) emit("send", payload);
 }
 
-function sendText() {
+// Shift+enter is left to the textarea, so it breaks the line. An enter that commits an IME
+// composition is neither a send nor a line break.
+function sendOnEnter(event: KeyboardEvent) {
+	if (event.isComposing) return;
+	event.preventDefault();
 	submit();
 }
 
@@ -233,8 +229,7 @@ defineExpose({ focus });
 				:rows="1"
 				:placeholder="placeholder"
 				:disabled="locked"
-				@keydown.ctrl.enter.stop="sendText"
-				@keydown.meta.enter.stop="sendText"
+				@keydown.enter.exact="sendOnEnter"
 			/>
 
 			<div class="flex items-center gap-1 px-1.5 pb-1.5">
@@ -262,10 +257,6 @@ defineExpose({ focus });
 					<template #content>
 						<span class="flex items-center gap-1">
 							{{ sendLabel }}
-							<kbd
-								class="rounded-sm bg-surface-gray-7 px-1 text-xs text-ink-gray-2"
-								>{{ modifierKey }}</kbd
-							>
 							<kbd class="rounded-sm bg-surface-gray-7 px-1 text-xs text-ink-gray-2"
 								>↵</kbd
 							>
