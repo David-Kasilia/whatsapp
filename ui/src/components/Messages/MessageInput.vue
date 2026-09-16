@@ -60,7 +60,7 @@ function focus() {
  * describe what went out, after the controller has cleared it.
  */
 async function submit(overrides?: Pick<SendMessagePayload, "message">) {
-	if (props.disabled) return;
+	if (!sendable.value) return;
 	const payload = props.buildPayload(overrides);
 	const name = await props.send(overrides);
 	if (name && payload) emit("send", payload);
