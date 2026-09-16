@@ -235,6 +235,17 @@ export interface TemplateButtonsProps {
 /** A `[doctype, docname]` pair naming a document messages hang off. */
 export type MessageReference = [doctype: string, docname: string];
 
+/**
+ * Meta's customer service window: a free-form message reaches the contact only within 24
+ * hours of their last message; outside it, only a template does. Derived from the loaded
+ * conversation, so it is as wide as the references are.
+ */
+export interface CustomerServiceWindow {
+  open: boolean;
+  /** when the window lapses; `null` when the contact has never written */
+  expiresAt: Date | null;
+}
+
 /** Options for `useMessages()`. Each may be a plain value, a ref, or a getter. */
 export interface UseMessagesOptions {
   /** the conversation's scope; **the first pair is where a send attaches** */
@@ -257,6 +268,8 @@ export interface MessagesController {
   sending: boolean;
   /** last failure of a fetch, a send or a reaction; `null` while healthy. Verbs never throw */
   error: unknown;
+  /** the contact's window; `null` until the conversation has loaded */
+  serviceWindow: CustomerServiceWindow | null;
   reload: () => Promise<void>;
   /**
    * Returns the new message's docname, or `null` when there was nothing to send, no
@@ -347,7 +360,9 @@ export interface TemplatesController {
  * The reply preview sits inside the composer's border, above the field. Draws no page padding
  * of its own; a host supplies it, and a `class` lands on the root above the composer.
  * Accepts a dropped or pasted file as well as a picked one. Sending is ctrl/cmd+enter,
- * leaving a bare enter to break the line.
+ * leaving a bare enter to break the line. While the controller's `serviceWindow` is closed
+ * the field and the send are locked behind {@link MessageInputProps.windowClosedLabel};
+ * `leading-actions` stays live so a host's template button still works.
  *
  * Emits: `send` ({@link SendMessagePayload}) **after** the send lands, as a notification.
  * Slots: `leading-actions` — rendered at the start of the action row, inside the composer.
@@ -372,6 +387,11 @@ export interface MessageInputProps {
   replyingToLabel?: string;
   /** default "Dismiss reply" — accessible name of the reply preview's close button */
   dismissReplyLabel?: string;
+  /**
+   * default "The 24-hour customer service window has closed. Send a template to reopen it."
+   * Shown in place of the field while the window is closed.
+   */
+  windowClosedLabel?: string;
   /**
    * default "Send". The send button is icon-only, so this is its tooltip and its accessible
    * name. Do not append the keyboard hint — the tooltip renders it, and which modifier to

@@ -25,6 +25,8 @@ const props = withDefaults(defineProps<MessagesController & MessageInputProps>()
 	sendLabel: "Send",
 	replyingToLabel: "Replying to",
 	dismissReplyLabel: "Dismiss reply",
+	windowClosedLabel:
+		"The 24-hour customer service window has closed. Send a template to reopen it.",
 });
 
 const emit = defineEmits<{
@@ -49,7 +51,10 @@ const replyToName = computed(() =>
 	props.replyTo?.direction === "Incoming" ? props.senderName : props.youLabel
 );
 
-const sendable = computed(() => props.canSend && !props.disabled);
+// Unknown (`null`) is treated as open: an unloaded conversation must not lock the field.
+const windowClosed = computed(() => props.serviceWindow?.open === false);
+const locked = computed(() => props.disabled || windowClosed.value);
+const sendable = computed(() => props.canSend && !locked.value);
 
 // Only the platform knows which modifier to name, so it is detected rather than passed in.
 const modifierKey = computed(() =>
@@ -68,7 +73,7 @@ function focus() {
  * describe what went out, after the controller has cleared it.
  */
 async function submit(overrides?: Pick<SendMessagePayload, "message">) {
-	if (props.disabled) return;
+	if (!sendable.value) return;
 	const payload = props.buildPayload(overrides);
 	const name = await props.send(overrides);
 	if (name && payload) emit("send", payload);
@@ -144,13 +149,13 @@ function upload(file: File) {
 function onDrop(event: DragEvent) {
 	draggingOver.value = false;
 	const file = event.dataTransfer?.files?.[0];
-	if (file && !props.disabled) upload(file);
+	if (file && !locked.value) upload(file);
 }
 
 // Only when the clipboard actually carries a file — pasting text must stay a paste.
 function onPaste(event: ClipboardEvent) {
 	const file = event.clipboardData?.files?.[0];
-	if (!file || props.disabled) return;
+	if (!file || locked.value) return;
 	event.preventDefault();
 	upload(file);
 }
@@ -211,6 +216,14 @@ defineExpose({ focus });
 				</Button>
 			</div>
 
+			<div
+				v-if="windowClosed"
+				class="flex items-start gap-1.5 px-2.5 pt-2 text-sm text-ink-gray-6"
+			>
+				<span class="lucide-clock mt-0.5 size-4 shrink-0" aria-hidden="true" />
+				{{ windowClosedLabel }}
+			</div>
+
 			<!-- placeholder overridden: ghost's own is ink-gray-3, 1.5:1 on white -->
 			<Textarea
 				ref="textareaRef"
@@ -219,7 +232,7 @@ defineExpose({ focus });
 				class="max-h-40 min-h-9 w-full resize-none border-0 bg-transparent placeholder-ink-gray-5 [field-sizing:content]"
 				:rows="1"
 				:placeholder="placeholder"
-				:disabled="disabled"
+				:disabled="locked"
 				@keydown.ctrl.enter.stop="sendText"
 				@keydown.meta.enter.stop="sendText"
 			/>
@@ -234,11 +247,7 @@ defineExpose({ focus });
 				>
 					<template #default="{ openFileSelector }">
 						<Dropdown :options="uploadOptions(openFileSelector)">
-							<Button
-								variant="ghost"
-								:disabled="disabled"
-								aria-label="Attach a file"
-							>
+							<Button variant="ghost" :disabled="locked" aria-label="Attach a file">
 								<template #icon>
 									<span class="lucide-plus size-4.5" aria-hidden="true" />
 								</template>

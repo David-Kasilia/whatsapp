@@ -8,8 +8,9 @@ import {
   toValue,
   watch,
 } from "vue";
-import { createResource } from "frappe-ui";
+import { createResource, dayjsLocal } from "frappe-ui";
 import type {
+  CustomerServiceWindow,
   MediaFile,
   MessageReference,
   MessagesController,
@@ -20,6 +21,7 @@ import type {
 } from "./types";
 
 const API = "whatsapp.whatsapp.api.messages";
+const CUSTOMER_SERVICE_WINDOW_HOURS = 24;
 
 /** The socket methods used here. Structural, so this package never imports socket.io. */
 interface RealtimeSocket {
@@ -88,6 +90,18 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
     )
   );
   const loading = computed<boolean>(() => Boolean(list.loading));
+
+  // Re-evaluated when the conversation changes, which every incoming message does; a tab left
+  // open across the boundary learns of it on its next reload.
+  const serviceWindow = computed<CustomerServiceWindow | null>(() => {
+    if (list.data == null) return null;
+    const lastIncoming = [...messages.value]
+      .reverse()
+      .find((m) => m.direction === "Incoming");
+    if (!lastIncoming?.creation) return { open: false, expiresAt: null };
+    const expiresAt = dayjsLocal(lastIncoming.creation).add(CUSTOMER_SERVICE_WINDOW_HOURS, "hour");
+    return { open: expiresAt.isAfter(dayjsLocal()), expiresAt: expiresAt.toDate() };
+  });
   // A resource clears its error when its next call starts.
   const error = computed<unknown>(
     () =>
@@ -276,6 +290,7 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
     loading,
     sending,
     error,
+    serviceWindow,
     reload,
     send,
     react,
