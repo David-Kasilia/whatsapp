@@ -166,7 +166,7 @@ logic. All of them are host-agnostic — no host's DocTypes or roles appear in t
 | `whatsapp.whatsapp.api.messages.send_message(to, message, attach, content_type, reply_to, reference_doctype, reference_docname)` | Send text or media, optionally as a reply. Returns the new message's name |
 | `whatsapp.whatsapp.api.messages.react_to_message(message, emoji)` | React to a message. Returns the reaction message's name |
 | `whatsapp.whatsapp.api.messages.send_template(template, to, reference_doctype, reference_docname)` | Send an approved template |
-| `whatsapp.whatsapp.doctype.whatsapp_template.whatsapp_template.get_sendable_templates(reference_doctype)` | Approved templates whose variables can be resolved from that DocType, buttons included |
+| `whatsapp.whatsapp.doctype.whatsapp_template.whatsapp_template.get_sendable_templates(reference_doctype)` | Approved templates whose variables can be resolved from that DocType, buttons and variable mappings included |
 | `whatsapp.whatsapp.doctype.whatsapp_template.whatsapp_template.create_template_and_push(doc_data, account_name)` | Create a template and push it to Meta for approval |
 
 `references` is a JSON list of `[doctype, docname]` pairs — the **host** decides the scope

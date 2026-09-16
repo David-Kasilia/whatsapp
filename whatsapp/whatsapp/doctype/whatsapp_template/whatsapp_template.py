@@ -686,24 +686,23 @@ def get_sendable_templates(reference_doctype: str) -> list[dict]:
 	if not templates:
 		return []
 
-	unbound_names = [t.name for t in templates if not t.reference_doctype]
-	unbound_with_vars: set[str] = set()
-	if unbound_names:
-		unbound_with_vars = {
-			row.parent
-			for row in frappe.get_all(
-				"Template Variable",
-				filters={"parent": ["in", unbound_names], "parenttype": "WhatsApp Template"},
-				fields=["parent"],
-			)
-		}
+	# A child table needs its own query: frappe.get_all on the parent cannot return one,
+	# whatever is in the field list.
+	variables_by_template: dict[str, list[dict]] = {}
+	for row in frappe.get_all(
+		"Template Variable",
+		filters={"parent": ["in", [t.name for t in templates]], "parenttype": "WhatsApp Template"},
+		fields=["parent", "variable_name", "variable_field"],
+		order_by="idx asc",
+	):
+		variables_by_template.setdefault(row.parent, []).append(
+			{"variable_name": row.variable_name, "variable_field": row.variable_field}
+		)
 
-	sendable = [t for t in templates if t.name not in unbound_with_vars]
+	sendable = [t for t in templates if t.reference_doctype or t.name not in variables_by_template]
 	if not sendable:
 		return []
 
-	# A child table needs its own query: frappe.get_all on the parent cannot return one,
-	# whatever is in the field list.
 	buttons_by_template: dict[str, list[dict]] = {}
 	for row in frappe.get_all(
 		"WhatsApp Template Button",
@@ -721,6 +720,7 @@ def get_sendable_templates(reference_doctype: str) -> list[dict]:
 		)
 
 	for template in sendable:
+		template["template_variables"] = variables_by_template.get(template.name, [])
 		template["buttons"] = buttons_by_template.get(template.name, [])
 
 	return sendable
