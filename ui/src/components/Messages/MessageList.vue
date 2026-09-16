@@ -81,7 +81,22 @@ function scrollToMessage(name: string) {
 	flashTimer = setTimeout(() => (flashed.value = null), FLASH_MS);
 }
 
-onBeforeUnmount(() => clearTimeout(flashTimer));
+const endHidden = ref(false);
+// The host's scroll container clips the sentinel whenever a message is scrolled under the
+// composer, and the observer honours that clipping without this list knowing the scroller.
+const endObserver = new IntersectionObserver(
+	([entry]) => (endHidden.value = !entry.isIntersecting)
+);
+
+function observeEnd(element: unknown) {
+	endObserver.disconnect();
+	if (element) endObserver.observe(element as HTMLElement);
+}
+
+onBeforeUnmount(() => {
+	clearTimeout(flashTimer);
+	endObserver.disconnect();
+});
 </script>
 
 <template>
@@ -193,5 +208,18 @@ onBeforeUnmount(() => clearTimeout(flashTimer));
 				</li>
 			</template>
 		</ul>
+
+		<!--
+			Sticks to the host scroller's bottom edge, over whatever is scrolled under the
+			composer, and is shown only while the end of the list is out of view — so the last
+			message is never tinted when nothing is behind the fade.
+		-->
+		<div
+			v-if="messages.length"
+			aria-hidden="true"
+			class="pointer-events-none sticky bottom-0 -mt-8 h-8 bg-gradient-to-t from-[color:var(--surface-base)] to-transparent transition-opacity"
+			:class="endHidden ? 'opacity-100' : 'opacity-0'"
+		/>
+		<div v-if="messages.length" :ref="observeEnd" />
 	</div>
 </template>

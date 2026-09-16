@@ -172,7 +172,16 @@ defineExpose({ focus });
 
 <template>
 	<!-- The dialog is a sibling of the composer, so a host's `class` needs a root above both. -->
-	<div class="flex flex-col">
+	<div class="flex flex-col gap-2">
+		<div
+			v-if="windowClosed"
+			role="status"
+			class="flex items-center gap-2 rounded-lg bg-surface-gray-2 px-3 py-2 text-sm text-ink-gray-7"
+		>
+			<span class="lucide-info size-4 shrink-0 text-ink-amber-6" aria-hidden="true" />
+			{{ windowClosedLabel }}
+		</div>
+
 		<!--
 			One control rather than a field beside a button row: the reply preview, the field and
 			the actions all sit inside the box, so they share its focus ring, its disabled state
@@ -210,14 +219,6 @@ defineExpose({ focus });
 						<span class="lucide-circle-x size-4 text-ink-gray-6" aria-hidden="true" />
 					</template>
 				</Button>
-			</div>
-
-			<div
-				v-if="windowClosed"
-				class="flex items-start gap-1.5 px-2.5 pt-2 text-sm text-ink-gray-6"
-			>
-				<span class="lucide-clock mt-0.5 size-4 shrink-0" aria-hidden="true" />
-				{{ windowClosedLabel }}
 			</div>
 
 			<!-- placeholder overridden: ghost's own is ink-gray-3, 1.5:1 on white -->

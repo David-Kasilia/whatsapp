@@ -119,16 +119,22 @@ function react({ messageName, emoji }: ReactPayload) {
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- the host owns the scroll container; MessageList is layout-neutral -->
-    <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-10">
-      <MessageList
-        :messages="messages.messages"
-        :loading="messages.loading"
-        :error="messages.error"
-        :sender-name="contactName"
-        @reply="messages.setReplyTo"
-        @react="react"
-      />
+    <!--
+      the host owns the scroll container; MessageList is layout-neutral. The gutter goes on
+      a wrapper inside it, not on the scroller: padding there would hold the list's sticky
+      bottom fade that far above the composer.
+    -->
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <div class="px-3 py-4 sm:px-10">
+        <MessageList
+          :messages="messages.messages"
+          :loading="messages.loading"
+          :error="messages.error"
+          :sender-name="contactName"
+          @reply="messages.setReplyTo"
+          @react="react"
+        />
+      </div>
     </div>
     <!-- the composer draws no page padding of its own either -->
     <MessageInput
@@ -320,8 +326,8 @@ what stops a second enter during the round trip from posting the same draft twic
 from the latest incoming message in the loaded conversation, and `null` until it has loaded.
 A free-form message only reaches a contact within 24 hours of their last message, so
 `MessageInput` locks its field and its send while `open` is false and shows
-`windowClosedLabel` instead; the `leading-actions` slot stays live, which is where a host
-puts its template button. A conversation with no incoming message has a closed window with
+`windowClosedLabel` in a banner above the box; the `leading-actions` slot stays live, which
+is where a host puts its template button. A conversation with no incoming message has a closed window with
 `expiresAt: null`. The window is only as wide as `references`: a contact who wrote on a
 document outside them looks silent here.
 

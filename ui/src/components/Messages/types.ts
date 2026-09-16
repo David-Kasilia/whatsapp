@@ -103,7 +103,14 @@ export interface WhatsAppMessage {
   template_name?: string;
 }
 
-/** Exactly what `get_sendable_templates` returns, buttons included. */
+/** Which reference-document field fills one `{{variable_name}}` in a template's text. */
+export interface WhatsAppTemplateVariable {
+  variable_name: string;
+  /** fieldname on the template's `reference_doctype`; empty when nothing fills it */
+  variable_field?: string;
+}
+
+/** Exactly what `get_sendable_templates` returns, buttons and variables included. */
 export interface WhatsAppTemplate {
   /** opaque docname, and what `sendTemplate` takes */
   name: string;
@@ -122,6 +129,8 @@ export interface WhatsAppTemplate {
   language?: string;
   /** child table, so it needs its own query — optional for a host supplying its own list */
   buttons?: WhatsAppTemplateButton[];
+  /** lets a host preview the body with the reference document's values before sending */
+  template_variables?: WhatsAppTemplateVariable[];
 }
 
 // —— outbound payloads ——
@@ -388,7 +397,7 @@ export interface MessageInputProps {
   dismissReplyLabel?: string;
   /**
    * default "The 24-hour customer service window has closed. Send a template to reopen it."
-   * Shown in place of the field while the window is closed.
+   * Shown in a banner above the field while the window is closed.
    */
   windowClosedLabel?: string;
   /**
