@@ -1,10 +1,17 @@
 # Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and Contributors
 # See license.txt
 
+from unittest.mock import patch
+
 import frappe
+import requests
 from frappe.tests import IntegrationTestCase
 
-from whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account import get_append_field_options
+from whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account import (
+	check_webhook_subscription,
+	get_append_field_options,
+	subscribe_webhook,
+)
 
 # On IntegrationTestCase, the doctype test records and all
 # link-field test record dependencies are recursively loaded
@@ -139,3 +146,65 @@ class IntegrationTestWhatsAppAccount(IntegrationTestCase):
 
 	def test_field_options_are_empty_until_a_doctype_is_chosen(self):
 		self.assertEqual(get_append_field_options("", "sender_field"), [])
+
+	@patch("whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account._get_whatsapp_client")
+	def test_subscription_check_matches_the_expected_app(self, get_client):
+		get_client.return_value.get_subscribed_apps.return_value = {
+			"data": [{"whatsapp_business_api_data": {"id": "app_1", "name": "My App"}}]
+		}
+		account = self._account("1")
+		account.db_set({"business_id": "waba_1", "app_id": "app_1"})
+
+		result = check_webhook_subscription(account.name)
+
+		self.assertTrue(result["subscribed"])
+		self.assertEqual(result["subscribed_apps"][0]["name"], "My App")
+
+	@patch("whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account._get_whatsapp_client")
+	def test_subscription_check_reports_a_different_app_as_unsubscribed(self, get_client):
+		get_client.return_value.get_subscribed_apps.return_value = {
+			"data": [{"whatsapp_business_api_data": {"id": "app_1", "name": "Meta Test App"}}]
+		}
+		account = self._account("1")
+		account.db_set({"business_id": "waba_1", "app_id": "app_9"})
+
+		self.assertFalse(check_webhook_subscription(account.name)["subscribed"])
+
+	def test_subscription_check_needs_a_business_id(self):
+		account = self._account("1")
+		self.assertRaises(frappe.ValidationError, check_webhook_subscription, account.name)
+
+	@patch("whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account._get_whatsapp_client")
+	def test_subscription_check_surfaces_meta_errors(self, get_client):
+		get_client.return_value.get_subscribed_apps.side_effect = requests.HTTPError("Code 190: bad token")
+		account = self._account("1")
+		account.db_set("business_id", "waba_1")
+
+		with self.assertRaises(frappe.ValidationError) as ctx:
+			check_webhook_subscription(account.name)
+		self.assertIn("Code 190", str(ctx.exception))
+
+	@patch("whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account._get_whatsapp_client")
+	def test_subscribe_posts_to_meta_then_rechecks(self, get_client):
+		client = get_client.return_value
+		client.subscribe_app.return_value = {"success": True}
+		client.get_subscribed_apps.return_value = {
+			"data": [{"whatsapp_business_api_data": {"id": "app_1", "name": "My App"}}]
+		}
+		account = self._account("1")
+		account.db_set({"business_id": "waba_1", "app_id": "app_1"})
+
+		result = subscribe_webhook(account.name)
+
+		client.subscribe_app.assert_called_once_with()
+		self.assertTrue(result["subscribed"])
+
+	@patch("whatsapp.whatsapp.doctype.whatsapp_account.whatsapp_account._get_whatsapp_client")
+	def test_subscribe_surfaces_meta_errors(self, get_client):
+		get_client.return_value.subscribe_app.side_effect = requests.HTTPError("Code 200: missing permission")
+		account = self._account("1")
+		account.db_set("business_id", "waba_1")
+
+		with self.assertRaises(frappe.ValidationError) as ctx:
+			subscribe_webhook(account.name)
+		self.assertIn("Code 200", str(ctx.exception))

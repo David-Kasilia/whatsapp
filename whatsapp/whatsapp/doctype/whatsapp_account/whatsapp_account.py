@@ -2,8 +2,11 @@
 # For license information, please see license.txt
 
 import frappe
+import requests
 from frappe import _
 from frappe.model.document import Document
+
+from whatsapp.whatsapp.doctype.whatsapp_message.whatsapp_message import _get_whatsapp_client
 
 # Which fieldtypes can hold the value an append action writes into each mapping slot.
 # Drives both the pickers in the grid and the check on save.
@@ -129,3 +132,48 @@ def get_append_field_options(target_doctype: str = "", slot: str = "", txt: str 
 		for df in frappe.get_meta(target_doctype).fields
 		if df.fieldtype in fieldtypes and (txt in df.fieldname.lower() or txt in (df.label or "").lower())
 	]
+
+
+@frappe.whitelist()
+def check_webhook_subscription(account: str) -> dict:
+	"""Ask Meta which apps are subscribed to this account's WABA.
+
+	Webhook events only arrive for a WABA that has the app subscribed, which the
+	dashboard's webhook verification step does not do by itself.
+	"""
+	frappe.has_permission("WhatsApp Account", "write", throw=True)
+	account_doc = frappe.get_doc("WhatsApp Account", account)
+	if not account_doc.business_id:
+		frappe.throw(_("Set the Business ID (WABA ID) before checking the subscription"))
+
+	try:
+		response = _client_for(account_doc).get_subscribed_apps()
+	except requests.HTTPError as e:
+		frappe.throw(_("Meta rejected the request: {0}").format(e))
+
+	apps = [entry.get("whatsapp_business_api_data", {}) for entry in response.get("data", [])]
+	app_ids = {app.get("id") for app in apps}
+	return {
+		"subscribed_apps": apps,
+		"subscribed": account_doc.app_id in app_ids if account_doc.app_id else bool(app_ids),
+	}
+
+
+@frappe.whitelist()
+def subscribe_webhook(account: str) -> dict:
+	"""Subscribe the app behind the access token to this account's WABA, then re-check."""
+	frappe.has_permission("WhatsApp Account", "write", throw=True)
+	account_doc = frappe.get_doc("WhatsApp Account", account)
+	if not account_doc.business_id:
+		frappe.throw(_("Set the Business ID (WABA ID) before subscribing"))
+
+	try:
+		_client_for(account_doc).subscribe_app()
+	except requests.HTTPError as e:
+		frappe.throw(_("Meta rejected the subscription: {0}").format(e))
+
+	return check_webhook_subscription(account)
+
+
+def _client_for(account_doc):
+	return _get_whatsapp_client(account_doc, frappe.get_single("WhatsApp Settings"))
