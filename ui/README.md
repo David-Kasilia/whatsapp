@@ -323,14 +323,13 @@ so the rows arrive grouped, and a conversation is one chronological run through 
 what stops a second enter during the round trip from posting the same draft twice.
 
 `serviceWindow` is Meta's 24-hour customer service window, `{ status, expiresAt }`, worked
-out from the latest incoming message in the loaded conversation, `null` until it has loaded,
-and re-evaluated at the instant it lapses. Only the contact's message opens a window, so
-`status` is `unopened` until they have written, then `open` for 24 hours from their latest
-message, then `closed`. `MessageInput` locks its field and its send unless the window is
-open, and a banner above the box says why — `windowClosedLabel` or `windowUnopenedLabel`; the
-`leading-actions` slot stays live, which is where a host puts its template button. The window
-is only as wide as `references`: a contact who wrote on a document outside them looks silent
-here.
+out from the latest message in the loaded conversation, `null` until it has loaded, and
+re-evaluated at the instant it lapses. `status` is `unopened` while the conversation is
+empty, `open` for 24 hours from the latest message in either direction, then `closed`.
+`MessageInput` shows a banner above the box while the window is not open — `windowClosedLabel`
+or `windowUnopenedLabel` — but leaves the field and the send live: the status is a guess from
+the loaded rows, and a send Meta really refuses comes back as a send error. The window is
+only as wide as `references`: a message on a document outside them does not count here.
 
 `error` holds the last failure of the fetch, a send or a reaction, and is `null` while
 healthy. The verbs never throw — they return `null` — because this package has no notification

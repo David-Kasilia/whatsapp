@@ -52,7 +52,8 @@ const replyToName = computed(() =>
 	props.replyTo?.direction === "Incoming" ? props.senderName : props.youLabel
 );
 
-// Unknown (`null`) is treated as open: an unloaded conversation must not lock the field.
+// The window is a guess from the loaded messages, so it only informs; Meta's own refusal
+// is what stops a send that is really outside it.
 const windowStatus = computed(() => props.serviceWindow?.status ?? "open");
 const windowNotice = computed(() => {
 	switch (windowStatus.value) {
@@ -64,7 +65,7 @@ const windowNotice = computed(() => {
 			return null;
 	}
 });
-const locked = computed(() => props.disabled || windowStatus.value !== "open");
+const locked = computed(() => props.disabled);
 const sendable = computed(() => props.canSend && !locked.value);
 
 function focus() {

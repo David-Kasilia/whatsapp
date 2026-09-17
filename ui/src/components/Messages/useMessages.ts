@@ -96,11 +96,9 @@ export function useMessages(options: UseMessagesOptions): MessagesController {
   const now = ref(Date.now());
   const serviceWindow = computed<CustomerServiceWindow | null>(() => {
     if (list.data == null) return null;
-    const lastIncoming = [...messages.value]
-      .reverse()
-      .find((m) => m.direction === "Incoming");
-    if (!lastIncoming?.creation) return { status: "unopened", expiresAt: null };
-    const expiresAt = dayjsLocal(lastIncoming.creation).add(CUSTOMER_SERVICE_WINDOW_HOURS, "hour");
+    const last = messages.value[messages.value.length - 1];
+    if (!last?.creation) return { status: "unopened", expiresAt: null };
+    const expiresAt = dayjsLocal(last.creation).add(CUSTOMER_SERVICE_WINDOW_HOURS, "hour");
     return {
       status: expiresAt.valueOf() > now.value ? "open" : "closed",
       expiresAt: expiresAt.toDate(),
