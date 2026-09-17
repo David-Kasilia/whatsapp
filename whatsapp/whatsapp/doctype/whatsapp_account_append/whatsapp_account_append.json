@@ -35,22 +35,22 @@
   {
    "fieldname": "section_break_field_mapping",
    "fieldtype": "Section Break",
-   "label": "Field Mapping"
+   "label": "Fields on the Created Document"
   },
   {
-   "description": "Text field on the Append To doctype that receives the message text",
+   "description": "Stores the message text",
    "fieldname": "message_field",
    "fieldtype": "Autocomplete",
    "in_list_view": 1,
-   "label": "Message Field",
+   "label": "Message Text",
    "show_description_on_click": 1
   },
   {
-   "description": "Field on the Append To doctype that receives the sender's phone number",
+   "description": "Stores the contact phone number",
    "fieldname": "sender_field",
    "fieldtype": "Autocomplete",
    "in_list_view": 1,
-   "label": "Sender Field",
+   "label": "Phone Number",
    "reqd": 1,
    "show_description_on_click": 1
   },
@@ -59,18 +59,20 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Field on the Append To doctype that receives the sender's WhatsApp profile name",
+   "description": "Stores the WhatsApp profile name",
    "fieldname": "sender_name_field",
    "fieldtype": "Autocomplete",
-   "label": "Sender Name Field",
+   "in_list_view": 1,
+   "label": "Contact Name",
    "reqd": 1,
    "show_description_on_click": 1
   },
   {
-   "description": "Date or Datetime field on the Append To doctype that receives the message timestamp",
+   "description": "Stores when the message was sent in a Date or Datetime field",
    "fieldname": "timestamp_field",
    "fieldtype": "Autocomplete",
-   "label": "Timestamp Field",
+   "in_list_view": 1,
+   "label": "Message Time",
    "show_description_on_click": 1
   }
  ],
