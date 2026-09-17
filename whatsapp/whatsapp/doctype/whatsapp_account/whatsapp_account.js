@@ -44,21 +44,23 @@ frappe.ui.form.on("WhatsApp Account Append", {
 });
 
 function show_subscription_result(frm, result) {
+	const escape = frappe.utils.escape_html;
+	const waba = escape(frm.doc.business_id);
 	const apps = result.subscribed_apps
-		.map((app) => `<li>${frappe.utils.escape_html(app.name || "")} (${app.id})</li>`)
+		.map((app) => `<li>${escape(app.name || "")} (${escape(app.id || "")})</li>`)
 		.join("");
 
 	if (result.subscribed) {
 		frappe.msgprint({
 			title: __("Webhook Subscription"),
 			indicator: "green",
-			message: `${__("The app is subscribed to WABA {0}.", [frm.doc.business_id])}<ul>${apps}</ul>`,
+			message: `${__("The app is subscribed to WABA {0}.", [waba])}<ul>${apps}</ul>`,
 		});
 		return;
 	}
 
 	const expected = frm.doc.app_id
-		? __("Expected App ID: {0}", [frm.doc.app_id])
+		? __("Expected App ID: {0}", [escape(frm.doc.app_id)])
 		: __("No App ID is set on this account, so any subscribed app would count.");
 	const dialog = new frappe.ui.Dialog({
 		title: __("Webhook Subscription"),
@@ -77,10 +79,8 @@ function show_subscription_result(frm, result) {
 			});
 		},
 	});
-	dialog.$body.html(`<p>${__(
-		"The app is not subscribed to WABA {0}, so it receives no webhook events.",
-		[frm.doc.business_id],
-	)}</p>
+	dialog.$body
+		.html(`<p>${__("The app is not subscribed to WABA {0}, so it receives no webhook events.", [waba])}</p>
 		<p>${expected}</p>
 		<p>${__("Subscribed apps:")}</p>
 		<ul>${apps || `<li>${__("none")}</li>`}</ul>
