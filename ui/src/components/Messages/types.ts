@@ -250,7 +250,7 @@ export type MessageReference = [doctype: string, docname: string];
  * conversation, so it is as wide as the references are.
  */
 export interface CustomerServiceWindow {
-  /** only the contact's message opens a window, so it is `unopened` until they have written */
+  /** any message opens a window, so it is `unopened` only while the conversation is empty */
   status: "open" | "closed" | "unopened";
   /** when the window lapses, or lapsed; `null` while unopened */
   expiresAt: Date | null;
@@ -370,10 +370,10 @@ export interface TemplatesController {
  * The reply preview sits inside the composer's border, above the field. Draws no page padding
  * of its own; a host supplies it, and a `class` lands on the root above the composer.
  * Accepts a dropped or pasted file as well as a picked one. Enter sends; shift+enter breaks the line.
- * Unless the controller's `serviceWindow` is open the field and the send are locked, and a
- * banner says why — {@link MessageInputProps.windowClosedLabel} or
- * {@link MessageInputProps.windowUnopenedLabel}; `leading-actions` stays live so a host's
- * template button still works.
+ * While the controller's `serviceWindow` is not open a banner above the field says so —
+ * {@link MessageInputProps.windowClosedLabel} or {@link MessageInputProps.windowUnopenedLabel}.
+ * The field stays live: the window is worked out from the loaded messages, so a send Meta
+ * really refuses surfaces as a send error rather than a guess locking the box.
  *
  * Emits: `send` ({@link SendMessagePayload}) **after** the send lands, as a notification.
  * Slots: `leading-actions` — rendered at the start of the action row, inside the composer.
@@ -405,7 +405,7 @@ export interface MessageInputProps {
   windowClosedLabel?: string;
   /**
    * default "Send a template to start the conversation." Shown in the same banner while the
-   * contact has not written yet, so a locked field on a new lead explains itself.
+   * conversation is empty.
    */
   windowUnopenedLabel?: string;
   /**
